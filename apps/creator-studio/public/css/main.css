@@ -1,0 +1,227 @@
+/* PRISM Design System - Creator Studio Edition */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --prism-black: #121212;
+  --prism-purple: #6A0DAD;
+  --prism-pink: #FF1493;
+  --prism-gray-25: #FDFDFD;
+  --prism-gray-50: #F9FAFB;
+  --prism-gray-100: #F3F4F6;
+  --prism-gray-200: #E5E7EB;
+  --prism-gray-300: #D1D5DB;
+  --prism-gray-400: #9CA3AF;
+  --prism-gray-500: #6B7280;
+  --prism-gray-600: #4B5563;
+  --prism-gray-700: #374151;
+  --prism-gray-800: #1F2937;
+  --prism-gray-900: #111827;
+  --prism-success: #10B981;
+  --prism-warning: #F59E0B;
+  --prism-error: #EF4444;
+  --prism-info: #3B82F6;
+  --prism-gradient-primary: linear-gradient(135deg, var(--prism-purple) 0%, var(--prism-pink) 100%);
+  --prism-gradient-radial: radial-gradient(circle at center, var(--prism-purple) 0%, var(--prism-black) 100%);
+  --prism-gradient-subtle: linear-gradient(135deg, var(--prism-gray-50) 0%, var(--prism-gray-100) 100%);
+  --prism-text-xs: 0.75rem;
+  --prism-text-sm: 0.875rem;
+  --prism-text-base: 1rem;
+  --prism-text-lg: 1.125rem;
+  --prism-text-xl: 1.25rem;
+  --prism-text-2xl: 1.5rem;
+  --prism-text-3xl: 1.875rem;
+  --prism-text-4xl: 2.25rem;
+  --prism-text-5xl: 3rem;
+  --prism-space-xs: 0.25rem;
+  --prism-space-sm: 0.5rem;
+  --prism-space-md: 0.75rem;
+  --prism-space-lg: 1rem;
+  --prism-space-xl: 1.5rem;
+  --prism-space-2xl: 2rem;
+  --prism-space-3xl: 3rem;
+  --prism-space-4xl: 4rem;
+  --prism-radius-sm: 0.25rem;
+  --prism-radius-md: 0.375rem;
+  --prism-radius-lg: 0.5rem;
+  --prism-radius-xl: 0.75rem;
+  --prism-radius-2xl: 1rem;
+  --prism-radius-3xl: 1.5rem;
+  --prism-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --prism-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* StreamingCockpit specific colors */
+  --prism-accent: #8B5CF6;
+  --prism-blue: #3B82F6;
+  --prism-green: #10B981;
+}
+
+/* Hide all scrollbars for StreamingCockpit */
+.streaming-cockpit ::-webkit-scrollbar {
+  display: none;
+}
+
+.streaming-cockpit {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overflow: hidden;
+}
+
+/* Additional scrollbar removal for all child elements */
+.streaming-cockpit * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.streaming-cockpit *::-webkit-scrollbar {
+  display: none;
+}
+
+.streaming-cockpit *::-webkit-scrollbar-track {
+  display: none;
+}
+
+.streaming-cockpit *::-webkit-scrollbar-thumb {
+  display: none;
+}
+  --prism-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --prism-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --prism-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --prism-transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+    color: var(--prism-gray-800);
+    background: var(--prism-gray-900);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Dark Theme for Creator Studio */
+.dark-theme {
+    background: var(--prism-gray-900);
+    color: var(--prism-gray-100);
+}
+
+/* Utility Classes */
+.gradient-text {
+    background: var(--prism-gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.flex-prism { display: flex; align-items: center; }
+.text-center { text-align: center; }
+
+/* Layout */
+.layout { 
+    display: flex; 
+    height: 100vh; 
+    background: var(--prism-gray-900);
+}
+
+.main-content { 
+    flex: 1; 
+    padding: var(--prism-space-3xl); 
+    overflow-y: auto; 
+    background: var(--prism-gray-900);
+}
+
+/* Header */
+.header { 
+    margin-bottom: var(--prism-space-3xl);
+    padding-bottom: var(--prism-space-2xl);
+    border-bottom: 1px solid var(--prism-gray-700);
+}
+
+.header h1 {
+    font-size: var(--prism-text-4xl);
+    font-weight: 700;
+    color: var(--prism-gray-100);
+    margin-bottom: var(--prism-space-md);
+}
+
+.header p {
+    color: var(--prism-gray-400);
+    font-size: var(--prism-text-lg);
+}
+
+/* Feature Grid */
+.feature-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+    gap: var(--prism-space-2xl);
+    margin-bottom: var(--prism-space-3xl);
+}
+
+/* Content Grid and List Views */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--prism-space-lg);
+}
+
+.content-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--prism-space-md);
+}
+
+.content-item {
+    transition: transform 0.2s ease;
+}
+
+.content-item:hover {
+    transform: translateY(-4px);
+}
+
+.content-list .content-item {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    gap: var(--prism-space-lg);
+    align-items: center;
+    padding: var(--prism-space-lg);
+}
+
+.content-list .content-item > div:first-child {
+    margin-bottom: 0;
+    aspect-ratio: 16/9;
+    width: 200px;
+    height: auto;
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes prism-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes prism-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.prism-spin { animation: prism-spin 1s linear infinite; }
+.prism-pulse { animation: prism-pulse 2s ease-in-out infinite; }
+
+/* StreamingCockpit specific animations */
+@keyframes cockpit-fade-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.streaming-cockpit {
+    animation: cockpit-fade-in 0.3s ease-out;
+}
+
+/* Content appears with animation */
+.animate-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    .main-content { padding: var(--prism-space-xl); }
+    .feature-grid { grid-template-columns: 1fr; }
+}

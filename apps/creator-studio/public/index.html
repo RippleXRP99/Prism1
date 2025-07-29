@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISM Creator Studio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="dark-theme">
+    <div id="root"></div>
+    
+    <!-- Loading Indicator -->
+    <div id="loading" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999;">
+        <div style="text-align: center; color: #fff;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎨</div>
+            <div>Loading Creator Studio...</div>
+        </div>
+    </div>
+    
+    <!-- Load modules in dependency order -->
+    <!-- Utility Scripts -->
+    <script src="js/utils/constants.js"></script>
+    <script src="js/utils/api.js"></script>
+    
+    <!-- Services -->
+    <script src="js/services/ServerRecorder.js"></script>
+    
+    <!-- UI Components -->
+    <script src="js/components/LoginModal.js"></script>
+    <script src="js/components/Sidebar.js"></script>
+    <script src="js/components/Dashboard.js"></script>
+    <script src="js/components/StreamingCockpit.js"></script>
+    <script src="js/components/LivestreamingStudio.js"></script>
+    <script src="js/components/MediaLibrary.js"></script>
+    <script src="js/components/ContentPlanner.js"></script>
+    <script src="js/components/CreatorSettings.js"></script>
+    
+    <!-- Main App -->
+    <script src="js/components/App.js"></script>
+    
+    <script type="text/babel">
+        // Initialize PRISM Creator Studio
+        const { useState, useEffect } = React;
+        
+        function initializeApp() {
+            console.log('Initializing app...');
+            console.log('navItems available:', typeof window.navItems !== 'undefined');
+            
+            if (typeof window.navItems === 'undefined') {
+                console.log('Waiting for constants to load...');
+                setTimeout(initializeApp, 100);
+                return;
+            }
+            
+            console.log('Constants loaded, rendering app...');
+            const container = document.getElementById('root');
+            console.log('Container found:', !!container);
+            
+            if (container) {
+                // Hide loading screen
+                const loading = document.getElementById('loading');
+                if (loading) loading.style.display = 'none';
+                
+                // Create root and render the main app (React 18 way)
+                const root = ReactDOM.createRoot(container);
+                root.render(React.createElement(CreatorStudioApp));
+                console.log('App rendered successfully');
+            }
+        }
+        
+        // Start initialization with a small delay
+        setTimeout(initializeApp, 1000);
+    </script>
+</body>
+</html>

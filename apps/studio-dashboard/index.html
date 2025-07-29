@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISM Studio Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        :root {
+            /* PRISM Color Variables */
+            --prism-purple: #8B5CF6;
+            --prism-pink: #EC4899;
+            --prism-blue: #3B82F6;
+            --prism-success: #10B981;
+            --prism-warning: #F59E0B;
+            --prism-error: #EF4444;
+            --prism-info: #06B6D4;
+            
+            /* Studio-specific colors */
+            --studio-primary: #6366F1;
+            --studio-secondary: #8B5CF6;
+            --studio-accent: #EC4899;
+            
+            /* Grays */
+            --prism-gray-50: #F9FAFB;
+            --prism-gray-100: #F3F4F6;
+            --prism-gray-200: #E5E7EB;
+            --prism-gray-300: #D1D5DB;
+            --prism-gray-400: #9CA3AF;
+            --prism-gray-500: #6B7280;
+            --prism-gray-600: #4B5563;
+            --prism-gray-700: #374151;
+            --prism-gray-800: #1F2937;
+            --prism-gray-900: #111827;
+            
+            /* Spacing */
+            --prism-space-xs: 0.25rem;
+            --prism-space-sm: 0.5rem;
+            --prism-space-md: 1rem;
+            --prism-space-lg: 1.5rem;
+            --prism-space-xl: 2rem;
+            --prism-space-2xl: 3rem;
+            --prism-space-3xl: 4rem;
+            
+            /* Typography */
+            --prism-text-xs: 0.75rem;
+            --prism-text-sm: 0.875rem;
+            --prism-text-base: 1rem;
+            --prism-text-lg: 1.125rem;
+            --prism-text-xl: 1.25rem;
+            --prism-text-2xl: 1.5rem;
+            --prism-text-3xl: 1.875rem;
+            --prism-text-4xl: 2.25rem;
+            --prism-text-5xl: 3rem;
+            
+            /* Border Radius */
+            --prism-radius-sm: 0.125rem;
+            --prism-radius-md: 0.375rem;
+            --prism-radius-lg: 0.5rem;
+            --prism-radius-xl: 0.75rem;
+            --prism-radius-2xl: 1rem;
+            
+            /* Shadows */
+            --prism-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --prism-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --prism-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --prism-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--prism-gray-900) 0%, var(--prism-gray-800) 100%);
+            color: var(--prism-gray-100);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .studio-app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .studio-header {
+            background: rgba(99, 102, 241, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--prism-gray-700);
+            padding: var(--prism-space-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .studio-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .studio-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--prism-space-md);
+            font-size: var(--prism-text-xl);
+            font-weight: 700;
+            color: var(--studio-primary);
+        }
+        
+        .studio-nav {
+            display: flex;
+            gap: var(--prism-space-lg);
+        }
+        
+        .studio-nav-item {
+            padding: var(--prism-space-sm) var(--prism-space-md);
+            border-radius: var(--prism-radius-md);
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--prism-gray-300);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .studio-nav-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--studio-primary);
+            color: white;
+        }
+        
+        .studio-nav-item.active {
+            background: var(--studio-primary);
+            color: white;
+            border-color: var(--studio-primary);
+        }
+        
+        .studio-main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--prism-space-2xl);
+            width: 100%;
+        }
+        
+        .card-studio {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--prism-gray-700);
+            border-radius: var(--prism-radius-xl);
+            padding: var(--prism-space-xl);
+            box-shadow: var(--prism-shadow-lg);
+            transition: all 0.3s ease;
+        }
+        
+        .card-studio:hover {
+            border-color: var(--studio-primary);
+            box-shadow: var(--prism-shadow-xl);
+        }
+        
+        .gradient-studio {
+            background: linear-gradient(135deg, var(--studio-primary) 0%, var(--studio-secondary) 50%, var(--studio-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .btn-studio {
+            background: linear-gradient(135deg, var(--studio-primary) 0%, var(--studio-secondary) 100%);
+            color: white;
+            border: none;
+            padding: var(--prism-space-md) var(--prism-space-xl);
+            border-radius: var(--prism-radius-lg);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--prism-space-sm);
+        }
+        
+        .btn-studio:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--prism-shadow-lg);
+        }
+        
+        .btn-studio:active {
+            transform: translateY(0);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--prism-space-xl);
+            margin: var(--prism-space-2xl) 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--prism-space-lg);
+            margin: var(--prism-space-xl) 0;
+        }
+        
+        .input-studio {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--prism-gray-600);
+            border-radius: var(--prism-radius-md);
+            padding: var(--prism-space-md);
+            color: white;
+            width: 100%;
+            font-size: var(--prism-text-base);
+        }
+        
+        .input-studio:focus {
+            outline: none;
+            border-color: var(--studio-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .modal-studio {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content-studio {
+            background: var(--prism-gray-800);
+            border: 1px solid var(--prism-gray-700);
+            border-radius: var(--prism-radius-xl);
+            padding: var(--prism-space-2xl);
+            max-width: 500px;
+            width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .animate-in {
+            animation: slideInUp 0.3s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--prism-gray-700);
+            border-top: 4px solid var(--studio-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .creator-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--prism-gray-700);
+            border-radius: var(--prism-radius-lg);
+            padding: var(--prism-space-lg);
+            transition: all 0.2s ease;
+        }
+        
+        .creator-card:hover {
+            border-color: var(--studio-primary);
+            transform: translateY(-2px);
+        }
+        
+        .status-badge {
+            padding: var(--prism-space-xs) var(--prism-space-sm);
+            border-radius: var(--prism-radius-sm);
+            font-size: var(--prism-text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-active {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--prism-success);
+            border: 1px solid var(--prism-success);
+        }
+        
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--prism-warning);
+            border: 1px solid var(--prism-warning);
+        }
+        
+        .status-inactive {
+            background: rgba(107, 114, 128, 0.2);
+            color: var(--prism-gray-400);
+            border: 1px solid var(--prism-gray-500);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(135deg, var(--prism-gray-900) 0%, var(--prism-gray-800) 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        color: white;
+    ">
+        <div class="loading-spinner"></div>
+        <h2 style="margin-top: var(--prism-space-lg); color: var(--studio-primary);">Loading Studio Dashboard...</h2>
+    </div>
+    
+    <div id="root"></div>
+    
+    <!-- JavaScript Modules -->
+    <script type="text/babel" src="js/utils/constants.js"></script>
+    <script type="text/babel" src="js/utils/api.js"></script>
+    
+    <!-- Components -->
+    <script type="text/babel" src="js/components/LoginModal.js"></script>
+    <script type="text/babel" src="js/components/Dashboard.js"></script>
+    <script type="text/babel" src="js/components/CreatorManagement.js"></script>
+    <script type="text/babel" src="js/components/Analytics.js"></script>
+    <script type="text/babel" src="js/components/Settings.js"></script>
+    <script type="text/babel" src="js/components/App.js"></script>
+    
+    <script type="text/babel">
+        // Initialize PRISM Studio Dashboard
+        const { useState, useEffect } = React;
+        
+        function initializeStudioApp() {
+            console.log('Initializing Studio Dashboard...');
+            
+            const container = document.getElementById('root');
+            console.log('Container found:', !!container);
+            
+            if (container) {
+                // Hide loading screen
+                const loading = document.getElementById('loading');
+                if (loading) loading.style.display = 'none';
+                
+                // Create root and render the studio app
+                const root = ReactDOM.createRoot(container);
+                root.render(React.createElement(StudioApp));
+                console.log('Studio Dashboard rendered successfully');
+            }
+        }
+        
+        // Start initialization
+        setTimeout(initializeStudioApp, 500);
+    </script>
+</body>
+</html>

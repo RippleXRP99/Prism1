@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1753432587854",
+    "email": "test@test.rf",
+    "username": "test",
+    "displayName": "test",
+    "password": "$2a$12$n1DX74Qjm8tEJrr4Bs0AReg/so7qxYHYa43h2FSt4H0aUeqlfxg.S",
+    "avatar": "/assets/avatars/default-2.png",
+    "role": "creator",
+    "status": "active",
+    "isVerified": false,
+    "plan": "free",
+    "createdAt": "2025-07-25T08:36:27.854Z",
+    "updatedAt": "2025-07-25T12:24:03.481Z",
+    "lastLogin": "2025-07-25T12:24:03.481Z",
+    "totalContent": 0,
+    "totalRevenue": 0,
+    "preferences": {
+      "notifications": true,
+      "darkMode": false,
+      "language": "en"
+    },
+    "stats": {
+      "loginCount": 4,
+      "contentViewed": 0,
+      "subscriptions": 0
+    }
+  }
+]

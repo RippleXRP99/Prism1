@@ -1,0 +1,47 @@
+{
+  "name": "prism-platform",
+  "version": "1.0.0",
+  "description": "PRISM - Content Creator Platform with Consumer Frontend and Creator Studio",
+  "main": "index.js",
+  "scripts": {
+    "dev:consumer": "nodemon apps/consumer/index.js",
+    "dev:creator": "nodemon apps/creator-studio/index.js",
+    "dev:admin": "nodemon apps/admin/index.js",
+    "dev:api": "nodemon packages/api/index.js",
+    "dev:studio": "nodemon apps/studio-dashboard/server.js",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:consumer\" \"npm run dev:creator\" \"npm run dev:admin\" \"npm run dev:studio\"",
+    "start": "node packages/api/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
+  },
+  "keywords": [
+    "content-platform",
+    "creator-studio",
+    "streaming",
+    "javascript"
+  ],
+  "author": "RippleXRP99",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.18.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.55.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.1"
+  }
+}

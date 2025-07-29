@@ -1,0 +1,358 @@
+# Docker Compose for PRISM Infrastructure
+# Production-ready infrastructure stack
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # CDN & Load Balancing
+  # ============================================================================
+  
+  nginx:
+    image: nginx:alpine
+    container_name: prism-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/cache:/var/cache/nginx
+    restart: unless-stopped
+    depends_on:
+      - api-server
+      - consumer-app
+      - creator-studio
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Application Services
+  # ============================================================================
+  
+  api-server:
+    build:
+      context: ../packages/api
+      dockerfile: Dockerfile
+    container_name: prism-api
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/prism
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - CDN_URL=${CDN_URL}
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongodb
+      - redis
+      - elasticsearch
+    restart: unless-stopped
+    networks:
+      - prism-network
+    volumes:
+      - ../uploads:/app/uploads
+
+  consumer-app:
+    build:
+      context: ../apps/consumer
+      dockerfile: Dockerfile
+    container_name: prism-consumer
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.prism.app
+      - NEXT_PUBLIC_CDN_URL=${CDN_URL}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  creator-studio:
+    build:
+      context: ../apps/creator-studio
+      dockerfile: Dockerfile
+    container_name: prism-creator-studio
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.prism.app
+      - NEXT_PUBLIC_STREAMING_URL=${STREAMING_URL}
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  admin-dashboard:
+    build:
+      context: ../apps/admin
+      dockerfile: Dockerfile
+    container_name: prism-admin
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.prism.app
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Streaming Infrastructure
+  # ============================================================================
+  
+  streaming-server:
+    image: node:18-alpine
+    container_name: prism-streaming
+    working_dir: /app
+    command: ["node", "server.js"]
+    environment:
+      - NODE_ENV=production
+      - RTMP_PORT=1935
+      - HLS_PORT=8080
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "1935:1935"  # RTMP
+      - "8080:8080"  # HLS
+    volumes:
+      - ../packages/streaming:/app
+      - streaming-data:/app/streams
+    restart: unless-stopped
+    networks:
+      - prism-network
+    depends_on:
+      - redis
+
+  # ============================================================================
+  # Media Processing
+  # ============================================================================
+  
+  media-processor:
+    image: jrottenberg/ffmpeg:4.4-alpine
+    container_name: prism-media-processor
+    working_dir: /app
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ../packages/media:/app
+      - media-processing:/tmp/processing
+      - ../uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - prism-network
+    depends_on:
+      - redis
+
+  # ============================================================================
+  # Database Services
+  # ============================================================================
+  
+  mongodb:
+    image: mongo:6.0
+    container_name: prism-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=prism
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  postgresql:
+    image: postgres:15-alpine
+    container_name: prism-postgresql
+    environment:
+      - POSTGRES_DB=prism_financial
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: prism-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Analytics & Search
+  # ============================================================================
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: prism-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: prism-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Monitoring & Logging
+  # ============================================================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prism-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: prism-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    ports:
+      - "3003:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Message Queue
+  # ============================================================================
+  
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: prism-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Object Storage (MinIO)
+  # ============================================================================
+  
+  minio:
+    image: minio/minio:latest
+    container_name: prism-minio
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - prism-network
+
+  # ============================================================================
+  # Security Services
+  # ============================================================================
+  
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: prism-fail2ban
+    environment:
+      - TZ=${TIMEZONE}
+      - F2B_LOG_LEVEL=INFO
+    volumes:
+      - ./security/fail2ban:/data
+      - /var/log:/var/log:ro
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+
+# ============================================================================
+# Networks
+# ============================================================================
+
+networks:
+  prism-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# Volumes
+# ============================================================================
+
+volumes:
+  mongodb-data:
+    driver: local
+  postgresql-data:
+    driver: local
+  redis-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  minio-data:
+    driver: local
+  streaming-data:
+    driver: local
+  media-processing:
+    driver: local

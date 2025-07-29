@@ -1,0 +1,433 @@
+// PRISM Creator Studio - Modern Dashboard with Animations
+// Colors: Black primary, Blue secondary, Purple highlight, Pink accent
+
+(function() {
+    'use strict';
+    
+    const { React, ReactDOM } = window;
+    const { useState, useEffect, useRef } = React;
+
+    // Icon Components
+    const Icon = ({ name, size = 20, className = "" }) => {
+        const iconMap = {
+            dashboard: "📊",
+            content: "🎬",
+            analytics: "📈",
+            livestream: "📺",
+            calendar: "📅", 
+            community: "👥",
+            settings: "⚙️",
+            upload: "⬆️",
+            play: "▶️",
+            pause: "⏸️",
+            edit: "✏️",
+            delete: "🗑️",
+            eye: "👁️",
+            heart: "💖",
+            share: "📤",
+            bell: "🔔",
+            user: "👤",
+            money: "💰",
+            trend: "📊",
+            live: "🔴",
+            video: "🎥",
+            image: "🖼️",
+            mic: "🎤",
+            camera: "📹",
+            stream: "📡",
+            chat: "💬",
+            stats: "📋",
+            globe: "🌐",
+            clock: "⏰",
+            check: "✅",
+            x: "❌",
+            plus: "➕",
+            minus: "➖",
+            menu: "☰",
+            search: "🔍",
+            filter: "🔽",
+            export: "📊",
+            refresh: "🔄"
+        };
+        
+        return React.createElement('span', {
+            className: `icon ${className}`,
+            style: { fontSize: `${size}px` }
+        }, iconMap[name] || name);
+    };
+
+    // Navigation Menu Data
+    const navigationSections = [
+        {
+            title: "Hauptmenü",
+            items: [
+                { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+                { id: "content", label: "Content", icon: "content" },
+                { id: "analytics", label: "Analytics", icon: "analytics" }
+            ]
+        },
+        {
+            title: "Streaming",
+            items: [
+                { id: "livestream", label: "Live Stream", icon: "livestream" },
+                { id: "planning", label: "Content Planung", icon: "calendar" }
+            ]
+        },
+        {
+            title: "Community",
+            items: [
+                { id: "community", label: "Community", icon: "community" },
+                { id: "settings", label: "Einstellungen", icon: "settings" }
+            ]
+        }
+    ];
+
+    // Sample Data
+    const dashboardStats = [
+        { 
+            id: "revenue", 
+            title: "Einnahmen", 
+            value: "€2,847", 
+            change: "+23.5%", 
+            trend: "positive",
+            icon: "money"
+        },
+        { 
+            id: "views", 
+            title: "Aufrufe", 
+            value: "47.2K", 
+            change: "+12.8%", 
+            trend: "positive",
+            icon: "eye"
+        },
+        { 
+            id: "subscribers", 
+            title: "Abonnenten", 
+            value: "3,924", 
+            change: "+8.2%", 
+            trend: "positive",
+            icon: "heart"
+        },
+        { 
+            id: "engagement", 
+            title: "Engagement", 
+            value: "89.4%", 
+            change: "-2.1%", 
+            trend: "negative",
+            icon: "trend"
+        }
+    ];
+
+    const contentItems = [
+        {
+            id: 1,
+            title: "Exklusives Tutorial: Advanced Streaming Techniques",
+            type: "video",
+            status: "published",
+            views: "12.4K",
+            likes: "847",
+            date: "2025-07-20",
+            duration: "25:43"
+        },
+        {
+            id: 2,
+            title: "Behind the Scenes: Studio Setup",
+            type: "video", 
+            status: "draft",
+            views: "0",
+            likes: "0",
+            date: "2025-07-22",
+            duration: "15:20"
+        },
+        {
+            id: 3,
+            title: "Live Q&A Session",
+            type: "live",
+            status: "scheduled",
+            views: "0",
+            likes: "0",
+            date: "2025-07-25",
+            duration: "Live"
+        }
+    ];
+
+    // Sidebar Component
+    function Sidebar({ activeSection, setActiveSection }) {
+        return React.createElement('div', { className: 'sidebar' },
+            React.createElement('div', { className: 'sidebar-header' },
+                React.createElement('div', { className: 'logo' },
+                    React.createElement('div', { className: 'logo-icon' }, '🎨'),
+                    React.createElement('span', null, 'PRISM Studio')
+                )
+            ),
+            
+            React.createElement('div', { className: 'nav-menu' },
+                navigationSections.map(section => 
+                    React.createElement('div', { key: section.title, className: 'nav-section' },
+                        React.createElement('div', { className: 'nav-section-title' }, section.title),
+                        section.items.map(item =>
+                            React.createElement('a', {
+                                key: item.id,
+                                className: `nav-item ${activeSection === item.id ? 'active' : ''}`,
+                                onClick: () => setActiveSection(item.id)
+                            },
+                                React.createElement(Icon, { name: item.icon, className: 'nav-icon' }),
+                                React.createElement('span', null, item.label)
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    // Top Bar Component
+    function TopBar({ activeSection, isLive }) {
+        const sectionTitles = {
+            dashboard: "Dashboard",
+            content: "Content Management",
+            analytics: "Analytics & Insights",
+            livestream: "Live Streaming",
+            planning: "Content Planung",
+            community: "Community Management",
+            settings: "Einstellungen"
+        };
+
+        return React.createElement('div', { className: 'top-bar' },
+            React.createElement('div', { className: 'top-bar-left' },
+                React.createElement('h1', { className: 'page-title' }, sectionTitles[activeSection]),
+                React.createElement('div', { className: 'breadcrumb' }, 'PRISM Creator Studio')
+            ),
+            React.createElement('div', { className: 'top-bar-right' },
+                isLive && React.createElement('div', { className: 'live-indicator' },
+                    React.createElement('div', { className: 'live-dot' }),
+                    'LIVE'
+                ),
+                React.createElement('div', { className: 'user-menu' },
+                    React.createElement('div', { className: 'user-avatar' }, 'JD'),
+                    React.createElement('span', null, 'John Doe')
+                )
+            )
+        );
+    }
+
+    // Dashboard Stats Card
+    function StatsCard({ stat }) {
+        return React.createElement('div', { className: 'dashboard-card' },
+            React.createElement('div', { className: 'card-header' },
+                React.createElement('h3', { className: 'card-title' }, stat.title),
+                React.createElement('div', { className: 'card-icon' },
+                    React.createElement(Icon, { name: stat.icon, size: 20 })
+                )
+            ),
+            React.createElement('div', { className: 'stat-value' }, stat.value),
+            React.createElement('div', { className: 'stat-label' }, 'Letzten 30 Tage'),
+            React.createElement('div', { className: `stat-change ${stat.trend}` }, stat.change)
+        );
+    }
+
+    // Content Item Component
+    function ContentItem({ content }) {
+        const statusColors = {
+            published: "status-published",
+            draft: "status-draft",
+            scheduled: "status-scheduled",
+            live: "status-live"
+        };
+
+        return React.createElement('div', { className: 'content-item' },
+            React.createElement('div', { className: 'content-thumbnail' },
+                React.createElement(Icon, { 
+                    name: content.type === 'live' ? 'live' : 'video', 
+                    size: 24 
+                })
+            ),
+            React.createElement('div', { className: 'content-info' },
+                React.createElement('div', { className: 'content-title' }, content.title),
+                React.createElement('div', { className: 'content-meta' },
+                    React.createElement('span', null, `${content.views} Aufrufe`),
+                    React.createElement('span', null, `${content.likes} Likes`),
+                    React.createElement('span', null, content.duration),
+                    React.createElement('span', null, content.date)
+                )
+            ),
+            React.createElement('div', { className: 'content-actions' },
+                React.createElement('span', { 
+                    className: `status-badge ${statusColors[content.status]}` 
+                }, content.status),
+                React.createElement('button', { className: 'btn btn-secondary' },
+                    React.createElement(Icon, { name: 'edit', size: 16 })
+                )
+            )
+        );
+    }
+
+    // Dashboard Content
+    function DashboardContent() {
+        return React.createElement('div', { className: 'page-content' },
+            React.createElement('div', { className: 'dashboard-grid' },
+                dashboardStats.map(stat =>
+                    React.createElement(StatsCard, { key: stat.id, stat: stat })
+                )
+            ),
+            
+            React.createElement('div', { className: 'section' },
+                React.createElement('div', { className: 'section-header' },
+                    React.createElement('h2', { className: 'section-title' }, 'Neueste Inhalte'),
+                    React.createElement('div', { className: 'section-actions' },
+                        React.createElement('button', { className: 'btn btn-primary' },
+                            React.createElement(Icon, { name: 'plus', size: 16 }),
+                            'Neuer Content'
+                        )
+                    )
+                ),
+                React.createElement('div', { className: 'content-list' },
+                    contentItems.slice(0, 3).map(content =>
+                        React.createElement(ContentItem, { key: content.id, content: content })
+                    )
+                )
+            ),
+
+            React.createElement('div', { className: 'section' },
+                React.createElement('div', { className: 'section-header' },
+                    React.createElement('h2', { className: 'section-title' }, 'Performance Overview')
+                ),
+                React.createElement('div', { className: 'dashboard-card' },
+                    React.createElement('div', { className: 'chart-container' },
+                        React.createElement('canvas', { 
+                            id: 'revenueChart', 
+                            width: '400', 
+                            height: '200' 
+                        })
+                    )
+                )
+            )
+        );
+    }
+
+    // Content Management
+    function ContentManagement() {
+        const [filter, setFilter] = useState('all');
+        
+        const filteredContent = filter === 'all' 
+            ? contentItems 
+            : contentItems.filter(item => item.status === filter);
+
+        return React.createElement('div', { className: 'page-content' },
+            React.createElement('div', { className: 'section' },
+                React.createElement('div', { className: 'section-header' },
+                    React.createElement('h2', { className: 'section-title' }, 'Alle Inhalte'),
+                    React.createElement('div', { className: 'section-actions' },
+                        React.createElement('select', {
+                            className: 'form-input form-select',
+                            value: filter,
+                            onChange: (e) => setFilter(e.target.value)
+                        },
+                            React.createElement('option', { value: 'all' }, 'Alle Status'),
+                            React.createElement('option', { value: 'published' }, 'Veröffentlicht'),
+                            React.createElement('option', { value: 'draft' }, 'Entwurf'),
+                            React.createElement('option', { value: 'scheduled' }, 'Geplant')
+                        ),
+                        React.createElement('button', { className: 'btn btn-secondary' },
+                            React.createElement(Icon, { name: 'upload', size: 16 }),
+                            'Upload'
+                        ),
+                        React.createElement('button', { className: 'btn btn-primary' },
+                            React.createElement(Icon, { name: 'plus', size: 16 }),
+                            'Neuer Content'
+                        )
+                    )
+                ),
+                
+                React.createElement('div', { className: 'content-list' },
+                    filteredContent.map(content =>
+                        React.createElement(ContentItem, { key: content.id, content: content })
+                    )
+                )
+            )
+        );
+    }
+
+    // Settings Component
+    function SettingsContent() {
+        return React.createElement('div', { className: 'page-content' },
+            React.createElement('div', { className: 'section' },
+                React.createElement('div', { className: 'section-header' },
+                    React.createElement('h2', { className: 'section-title' }, 'Profil Einstellungen')
+                ),
+                React.createElement('div', { className: 'dashboard-card' },
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'Creator Name'),
+                        React.createElement('input', { 
+                            type: 'text', 
+                            className: 'form-input', 
+                            defaultValue: 'John Doe' 
+                        })
+                    ),
+                    React.createElement('div', { className: 'form-group' },
+                        React.createElement('label', { className: 'form-label' }, 'Bio'),
+                        React.createElement('textarea', { 
+                            className: 'form-input form-textarea', 
+                            defaultValue: 'Professional content creator and streaming expert.' 
+                        })
+                    ),
+                    React.createElement('button', { className: 'btn btn-primary' }, 'Speichern')
+                )
+            )
+        );
+    }
+
+    // Main App Component
+    function CreatorStudio() {
+        const [activeSection, setActiveSection] = useState('dashboard');
+        const [isLive, setIsLive] = useState(false);
+
+        const renderContent = () => {
+            switch (activeSection) {
+                case 'dashboard':
+                    return React.createElement(DashboardContent);
+                case 'content':
+                    return React.createElement(ContentManagement);
+                case 'analytics':
+                    return React.createElement('div', { className: 'page-content' },
+                        React.createElement('h2', null, 'Analytics coming soon...')
+                    );
+                case 'livestream':
+                    return React.createElement('div', { className: 'page-content' },
+                        React.createElement('h2', null, 'Live Streaming coming soon...')
+                    );
+                case 'planning':
+                    return React.createElement('div', { className: 'page-content' },
+                        React.createElement('h2', null, 'Content Planning coming soon...')
+                    );
+                case 'community':
+                    return React.createElement('div', { className: 'page-content' },
+                        React.createElement('h2', null, 'Community Management coming soon...')
+                    );
+                case 'settings':
+                    return React.createElement(SettingsContent);
+                default:
+                    return React.createElement(DashboardContent);
+            }
+        };
+
+        return React.createElement('div', { className: 'dashboard' },
+            React.createElement(Sidebar, { 
+                activeSection: activeSection, 
+                setActiveSection: setActiveSection
+            }),
+            React.createElement('div', { className: 'main-content' },
+                React.createElement(TopBar, { 
+                    activeSection: activeSection,
+                    isLive: isLive
+                }),
+                renderContent()
+            )
+        );
+    }
+
+    // Mount the app
+    const root = document.getElementById('root');
+    ReactDOM.render(React.createElement(CreatorStudio), root);
+
+})();

@@ -1,0 +1,584 @@
+# PRISM Platform - Kubernetes Production Deployment
+# High-availability, scalable infrastructure configuration
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prism-production
+  labels:
+    app: prism
+    environment: production
+
+---
+
+# ============================================================================
+# ConfigMaps
+# ============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prism-config
+  namespace: prism-production
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  CDN_URL: "https://cdn.prism.app"
+  API_URL: "https://api.prism.app"
+  STREAMING_URL: "https://stream.prism.app"
+
+---
+
+# ============================================================================
+# Secrets
+# ============================================================================
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prism-secrets
+  namespace: prism-production
+type: Opaque
+stringData:
+  mongodb-uri: "mongodb://mongodb-service:27017/prism"
+  postgresql-uri: "postgresql://postgres:password@postgresql-service:5432/prism_financial"
+  redis-url: "redis://redis-service:6379"
+  jwt-secret: "your-super-secret-jwt-key"
+  aws-access-key: "your-aws-access-key"
+  aws-secret-key: "your-aws-secret-key"
+
+---
+
+# ============================================================================
+# Persistent Volumes
+# ============================================================================
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongodb-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-ssd
+  hostPath:
+    path: /data/mongodb
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: prism-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: fast-ssd
+
+---
+
+# ============================================================================
+# Deployments
+# ============================================================================
+
+# API Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prism-api
+  namespace: prism-production
+  labels:
+    app: prism-api
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: prism-api
+  template:
+    metadata:
+      labels:
+        app: prism-api
+    spec:
+      containers:
+      - name: api
+        image: prism/api:latest
+        ports:
+        - containerPort: 4000
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: prism-config
+              key: NODE_ENV
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: prism-secrets
+              key: mongodb-uri
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: prism-secrets
+              key: jwt-secret
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+
+# Consumer App Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prism-consumer
+  namespace: prism-production
+  labels:
+    app: prism-consumer
+    version: v1.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: prism-consumer
+  template:
+    metadata:
+      labels:
+        app: prism-consumer
+    spec:
+      containers:
+      - name: consumer
+        image: prism/consumer:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: prism-config
+              key: API_URL
+        - name: NEXT_PUBLIC_CDN_URL
+          valueFrom:
+            configMapKeyRef:
+              name: prism-config
+              key: CDN_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+
+# Creator Studio Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prism-creator-studio
+  namespace: prism-production
+  labels:
+    app: prism-creator-studio
+    version: v1.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: prism-creator-studio
+  template:
+    metadata:
+      labels:
+        app: prism-creator-studio
+    spec:
+      containers:
+      - name: creator-studio
+        image: prism/creator-studio:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: prism-config
+              key: API_URL
+        - name: NEXT_PUBLIC_STREAMING_URL
+          valueFrom:
+            configMapKeyRef:
+              name: prism-config
+              key: STREAMING_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+
+# MongoDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: prism-production
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6.0
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "admin"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: prism-secrets
+              key: mongodb-password
+        volumeMounts:
+        - name: mongodb-storage
+          mountPath: /data/db
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: mongodb-storage
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+
+---
+
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: prism-production
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        command: ["redis-server", "--appendonly", "yes"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+
+# ============================================================================
+# Services
+# ============================================================================
+
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prism-api-service
+  namespace: prism-production
+  labels:
+    app: prism-api
+spec:
+  selector:
+    app: prism-api
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# Consumer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prism-consumer-service
+  namespace: prism-production
+  labels:
+    app: prism-consumer
+spec:
+  selector:
+    app: prism-consumer
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# Creator Studio Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prism-creator-studio-service
+  namespace: prism-production
+  labels:
+    app: prism-creator-studio
+spec:
+  selector:
+    app: prism-creator-studio
+  ports:
+  - port: 3001
+    targetPort: 3001
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# MongoDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: prism-production
+  labels:
+    app: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - port: 27017
+    targetPort: 27017
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: prism-production
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# ============================================================================
+# Ingress
+# ============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prism-ingress
+  namespace: prism-production
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - prism.app
+    - api.prism.app
+    - creator.prism.app
+    - admin.prism.app
+    secretName: prism-tls
+  rules:
+  - host: prism.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prism-consumer-service
+            port:
+              number: 3000
+  - host: api.prism.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prism-api-service
+            port:
+              number: 4000
+  - host: creator.prism.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prism-creator-studio-service
+            port:
+              number: 3001
+
+---
+
+# ============================================================================
+# Horizontal Pod Autoscaler
+# ============================================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: prism-api-hpa
+  namespace: prism-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: prism-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+
+# ============================================================================
+# Network Policies
+# ============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prism-network-policy
+  namespace: prism-production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: prism-production
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: prism-production
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
+
+---
+
+# ============================================================================
+# Pod Disruption Budget
+# ============================================================================
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: prism-api-pdb
+  namespace: prism-production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: prism-api
+
+---
+
+# ============================================================================
+# Service Monitor (Prometheus)
+# ============================================================================
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prism-api-monitor
+  namespace: prism-production
+  labels:
+    app: prism-api
+spec:
+  selector:
+    matchLabels:
+      app: prism-api
+  endpoints:
+  - port: api
+    path: /metrics
+    interval: 30s

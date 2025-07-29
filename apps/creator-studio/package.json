@@ -1,0 +1,19 @@
+{
+  "name": "prism-creator-studio",
+  "version": "1.0.0",
+  "description": "PRISM Creator Studio - Modular Architecture",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["prism", "creator", "studio", "streaming"],
+  "author": "PRISM Team",
+  "license": "MIT"
+}
