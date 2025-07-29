@@ -405,6 +405,14 @@ function CreatorManagement({ studio }) {
                 setSelectedCreator(null);
             },
             onUpdate: loadCreators
+        }),
+        
+        // Add Creator Modal
+        showAddCreator && React.createElement(CreatorAddModal, {
+            key: 'add-creator-modal',
+            onClose: () => setShowAddCreator(false),
+            onAddCreator: handleAddCreator,
+            studio: studio
         })
     ]);
 }
@@ -636,19 +644,15 @@ function CreatorDetailsModal({ creator, onClose, onUpdate }) {
                     ])
                 ])
             ])
-        ]),
-        
-        // Add Creator Modal
-        showAddCreator && React.createElement(AddCreatorModal, {
-            onClose: () => setShowAddCreator(false),
-            onAddCreator: handleAddCreator,
-            studio: studio
-        })
+        ])
     ]);
 }
 
-// Add Creator Modal Component
-function AddCreatorModal({ onClose, onAddCreator, studio }) {
+// Creator Add Modal Component (for CreatorManagement)
+function CreatorAddModal({ onClose, onAddCreator, studio }) {
+    // Debug props
+    console.log('CreatorAddModal props:', { onClose: typeof onClose, onAddCreator: typeof onAddCreator, studio });
+    
     const [studioKey, setStudioKey] = React.useState('');
     const [creatorName, setCreatorName] = React.useState('');
     const [permissions, setPermissions] = React.useState('view');
@@ -712,6 +716,9 @@ function AddCreatorModal({ onClose, onAddCreator, studio }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         
+        console.log('handleSubmit called, onAddCreator type:', typeof onAddCreator);
+        console.log('onAddCreator function:', onAddCreator);
+        
         if (!keyInfo || !keyInfo.valid) {
             alert('Bitte geben Sie einen gültigen Studio Key ein');
             return;
@@ -726,7 +733,12 @@ function AddCreatorModal({ onClose, onAddCreator, studio }) {
             status: 'pending'
         };
 
-        onAddCreator(creatorData);
+        if (typeof onAddCreator === 'function') {
+            onAddCreator(creatorData);
+        } else {
+            console.error('onAddCreator is not a function:', onAddCreator);
+            alert('Fehler: onAddCreator Funktion nicht verfügbar');
+        }
     };
 
     return React.createElement('div', {
@@ -999,3 +1011,7 @@ function AddCreatorModal({ onClose, onAddCreator, studio }) {
         ])
     ]);
 }
+
+// Export to global scope
+window.CreatorManagement = CreatorManagement;
+window.CreatorAddModal = CreatorAddModal;

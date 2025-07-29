@@ -12,6 +12,52 @@ function CreatorSettings({ user, setActiveTab }) {
     const [showCreateKey, setShowCreateKey] = React.useState(false);
     const [selectedPermission, setSelectedPermission] = React.useState('view');
     const [keyExpiration, setKeyExpiration] = React.useState('never');
+    const [studioRequests, setStudioRequests] = React.useState([]);
+    const [loadingRequests, setLoadingRequests] = React.useState(false);
+
+    // Load studio requests
+    const loadStudioRequests = React.useCallback(async () => {
+        try {
+            setLoadingRequests(true);
+            const response = await fetch(`/api/creator/creator123/studio-requests`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setStudioRequests(data.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading studio requests:', error);
+        } finally {
+            setLoadingRequests(false);
+        }
+    }, []);
+
+    // Handle studio request response
+    const handleStudioRequest = async (studioKey, action) => {
+        try {
+            const response = await fetch('/api/creator/confirm-studio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    studioKey,
+                    action
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Reload requests after response
+                await loadStudioRequests();
+            } else {
+                console.error('Failed to respond to studio request:', data.error);
+            }
+        } catch (error) {
+            console.error('Error responding to studio request:', error);
+        }
+    };
 
     // Load existing studio keys
     React.useEffect(() => {
@@ -20,6 +66,11 @@ function CreatorSettings({ user, setActiveTab }) {
             setStudioKeys(JSON.parse(savedKeys));
         }
     }, []);
+
+    // Load studio requests on component mount
+    React.useEffect(() => {
+        loadStudioRequests();
+    }, [loadStudioRequests]);
 
     const handleSave = () => {
         // Simulate saving
@@ -259,6 +310,173 @@ function CreatorSettings({ user, setActiveTab }) {
                     React.createElement('span', { key: 'text' }, 'Speichern')
                 ])
             ])
+        ]),
+
+        // Studio Connection Requests Section
+        React.createElement('div', {
+            key: 'studio-requests-section',
+            style: {
+                background: 'var(--prism-bg-secondary)',
+                padding: '2rem',
+                borderRadius: '12px',
+                border: '1px solid var(--prism-border)',
+                marginBottom: '2rem'
+            }
+        }, [
+            React.createElement('h2', {
+                key: 'requests-title',
+                style: { 
+                    fontSize: '1.5rem',
+                    color: 'var(--prism-text-primary)',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                }
+            }, [
+                React.createElement('span', { key: 'icon' }, '🏢'),
+                React.createElement('span', { key: 'text' }, 'Studio Verbindungsanfragen')
+            ]),
+            React.createElement('p', {
+                key: 'requests-description',
+                style: { 
+                    color: 'var(--prism-gray-400)',
+                    marginBottom: '1.5rem'
+                }
+            }, 'Studios, die Ihren Studio Key verwenden, um Sie zu ihrem Portfolio hinzuzufügen'),
+            
+            // Studio Connection Requests content
+            loadingRequests ? 
+                React.createElement('div', {
+                    key: 'loading-requests',
+                    style: {
+                        padding: '1.5rem',
+                        textAlign: 'center',
+                        color: 'var(--prism-gray-400)'
+                    }
+                }, [
+                    React.createElement('div', {
+                        key: 'loading-spinner',
+                        style: { 
+                            display: 'inline-block',
+                            width: '20px',
+                            height: '20px',
+                            border: '2px solid var(--prism-gray-600)',
+                            borderTop: '2px solid var(--prism-accent)',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            marginRight: '0.5rem'
+                        }
+                    }),
+                    React.createElement('span', { key: 'loading-text' }, 'Lade Studio-Anfragen...')
+                ]) :
+                studioRequests.length > 0 ?
+                    React.createElement('div', {
+                        key: 'requests-list',
+                        style: { display: 'flex', flexDirection: 'column', gap: '1rem' }
+                    }, studioRequests.map((request, index) => 
+                        React.createElement('div', {
+                            key: `request-${index}`,
+                            style: {
+                                padding: '1rem',
+                                background: 'var(--prism-bg-primary)',
+                                borderRadius: '8px',
+                                border: '1px solid var(--prism-border)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }
+                        }, [
+                            React.createElement('div', {
+                                key: 'request-info',
+                                style: { flex: 1 }
+                            }, [
+                                React.createElement('h4', {
+                                    key: 'studio-name',
+                                    style: { 
+                                        color: 'var(--prism-text-primary)',
+                                        margin: '0 0 0.25rem 0',
+                                        fontSize: '1rem',
+                                        fontWeight: '600'
+                                    }
+                                }, request.studioName || `Studio ${request.studioId}`),
+                                React.createElement('p', {
+                                    key: 'request-date',
+                                    style: { 
+                                        color: 'var(--prism-gray-400)',
+                                        margin: '0 0 0.5rem 0',
+                                        fontSize: '0.875rem'
+                                    }
+                                }, `Angefragt am: ${new Date(request.requestedAt).toLocaleDateString('de-DE')}`),
+                                React.createElement('p', {
+                                    key: 'request-permissions',
+                                    style: { 
+                                        color: 'var(--prism-gray-300)',
+                                        margin: '0',
+                                        fontSize: '0.875rem'
+                                    }
+                                }, `Berechtigung: ${request.permissions || 'Full Access'}`)
+                            ]),
+                            React.createElement('div', {
+                                key: 'request-actions',
+                                style: { display: 'flex', gap: '0.5rem' }
+                            }, [
+                                React.createElement('button', {
+                                    key: 'accept-btn',
+                                    onClick: () => handleStudioRequest(request.studioKey, 'accept'),
+                                    style: {
+                                        padding: '0.5rem 1rem',
+                                        background: 'var(--prism-success)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500'
+                                    }
+                                }, 'Akzeptieren'),
+                                React.createElement('button', {
+                                    key: 'reject-btn',
+                                    onClick: () => handleStudioRequest(request.studioKey, 'reject'),
+                                    style: {
+                                        padding: '0.5rem 1rem',
+                                        background: 'var(--prism-danger)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500'
+                                    }
+                                }, 'Ablehnen')
+                            ])
+                        ])
+                    )) :
+                    React.createElement('div', {
+                        key: 'requests-placeholder',
+                        style: {
+                            padding: '1.5rem',
+                            background: 'var(--prism-bg-primary)',
+                            borderRadius: '8px',
+                            border: '1px dashed var(--prism-border)',
+                            textAlign: 'center',
+                            color: 'var(--prism-gray-400)'
+                        }
+                    }, [
+                        React.createElement('div', {
+                            key: 'empty-icon',
+                            style: { fontSize: '2rem', marginBottom: '0.5rem' }
+                        }, '📋'),
+                        React.createElement('p', { key: 'empty-text' }, 'Keine ausstehenden Studio-Verbindungsanfragen'),
+                        React.createElement('p', {
+                            key: 'empty-subtext',
+                            style: { 
+                                fontSize: '0.875rem',
+                                marginTop: '0.5rem',
+                                opacity: 0.7
+                            }
+                        }, 'Anfragen erscheinen hier, wenn Studios Ihre Studio Keys verwenden')
+                    ])
         ]),
         
         // Studio Keys Section

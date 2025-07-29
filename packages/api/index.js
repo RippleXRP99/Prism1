@@ -13,6 +13,10 @@ const utils = require('../utils');
 const app = express();
 const PORT = process.env.API_PORT || 3004;
 
+// In-memory storage for Studio Dashboard (for development)
+const studioPortfolios = new Map(); // studioId -> { creators: [], connections: [] }
+const studioKeys = new Map(); // studioKey -> { creatorInfo, status }
+
 // Middleware
 app.use(helmet());
 app.use(morgan('combined'));
@@ -2076,16 +2080,16 @@ app.post('/api/studio/validate-key', async (req, res) => {
     
     // Parse key components
     const parts = studioKey.split('_');
-    const timestamp = parseInt(parts[1]);
+    const timestamp = parseInt(parts[1]) * 1000; // Convert to milliseconds
     const randomPart = parts[2];
     
     // Mock key validation - in a real app, this would check a database
     const keyInfo = {
       valid: true,
-      creatorId: `creator_${timestamp}`,
-      creatorName: 'Demo Creator', // Would come from database
-      permission: 'view', // Would be stored with the key
-      created: new Date(timestamp).toISOString(),
+      creatorId: `creator_${parts[1]}`,
+      creatorName: `Creator ${randomPart.substring(0, 4)}`, // Generate from key
+      permission: 'Full Access', // Full permission for demo
+      created: timestamp, // Return timestamp in milliseconds
       lastUsed: null,
       usageCount: 0,
       active: true,
@@ -2115,19 +2119,49 @@ app.post('/api/studio/:studioId/creators', async (req, res) => {
       return res.status(400).json(utils.response.error('Invalid studio key format'));
     }
     
+    // Get or create studio portfolio
+    if (!studioPortfolios.has(studioId)) {
+      studioPortfolios.set(studioId, { creators: [], connections: [] });
+    }
+    
+    const portfolio = studioPortfolios.get(studioId);
+    
+    // Check if creator already exists
+    const existingCreator = portfolio.creators.find(c => c.studioKey === studioKey);
+    if (existingCreator) {
+      return res.status(400).json(utils.response.error('Creator already in portfolio'));
+    }
+    
+    // Parse key for creator info
+    const parts = studioKey.split('_');
+    const timestamp = parseInt(parts[1]) * 1000;
+    
     // Create new creator connection
     const newCreator = {
       id: `creator_${Date.now()}`,
-      name: creatorName || 'Creator from Key',
+      name: creatorName || 'Demo Creator',
       studioKey: studioKey,
       studioId: studioId,
       status: 'pending', // Creator needs to approve
-      permission: 'view', // Default permission from key
+      permission: 'Full Access',
       commission: 20,
       category: 'general',
-      joinedAt: new Date().toISOString(),
-      lastActive: null
+      joinDate: new Date().toISOString(),
+      lastActive: null,
+      monthlyEarnings: 0
     };
+    
+    // Add to portfolio
+    portfolio.creators.push(newCreator);
+    studioPortfolios.set(studioId, portfolio);
+    
+    // Store studio key connection info
+    studioKeys.set(studioKey, {
+      studioId: studioId,
+      creatorId: newCreator.id,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
     
     res.json(utils.response.success('Creator added to studio portfolio', newCreator));
   } catch (error) {
@@ -2141,55 +2175,54 @@ app.get('/api/studio/:studioId/portfolio', async (req, res) => {
   try {
     const { studioId } = req.params;
     
-    // Mock portfolio data
-    const mockCreators = [
-      {
-        id: 'creator_001',
-        name: 'Alex Gaming',
-        username: '@alexgaming',
-        category: 'Gaming',
-        status: 'active',
-        followers: 15240,
-        monthlyRevenue: 2847.50,
-        commission: 15,
-        joinedDate: '2024-12-15',
-        lastActive: '2025-07-28'
-      },
-      {
-        id: 'creator_002', 
-        name: 'Sarah Tech',
-        username: '@sarahtech',
-        category: 'Technology',
-        status: 'active',
-        followers: 8932,
-        monthlyRevenue: 1456.80,
-        commission: 20,
-        joinedDate: '2025-01-10',
-        lastActive: '2025-07-29'
-      },
-      {
-        id: 'creator_003',
-        name: 'Mike Fitness',
-        username: '@mikefitness',
-        category: 'Fitness',
-        status: 'pending',
-        followers: 12567,
-        monthlyRevenue: 0,
-        commission: 18,
-        joinedDate: '2025-07-20',
-        lastActive: '2025-07-25'
-      }
-    ];
-
-    res.json(utils.response.success('Portfolio retrieved', {
-      creators: mockCreators,
-      totalCreators: mockCreators.length,
-      activeCreators: mockCreators.filter(c => c.status === 'active').length,
-      totalRevenue: mockCreators.reduce((sum, c) => sum + c.monthlyRevenue, 0)
-    }));
+    // Get stored portfolio or create empty one
+    let portfolio = studioPortfolios.get(studioId) || { creators: [], connections: [] };
+    
+    // If empty, add some mock data for demonstration
+    if (portfolio.creators.length === 0) {
+      const mockCreators = [
+        {
+          id: 'creator_001',
+          name: 'Alex Gaming',
+          username: '@alexgaming',
+          category: 'gaming',
+          status: 'active',
+          followers: 15240,
+          monthlyEarnings: 2847.50,
+          commission: 15,
+          joinDate: '2024-12-15',
+          lastActive: '2025-07-28'
+        },
+        {
+          id: 'creator_002', 
+          name: 'Sarah Tech',
+          username: '@sarahtech',
+          category: 'technology',
+          status: 'active',
+          followers: 8932,
+          monthlyEarnings: 1456.80,
+          commission: 20,
+          joinDate: '2024-11-22',
+          lastActive: '2025-07-27'
+        }
+      ];
+      
+      portfolio.creators = mockCreators;
+      studioPortfolios.set(studioId, portfolio);
+    }
+    
+    const portfolioData = {
+      studioId: studioId,
+      creators: portfolio.creators,
+      totalCreators: portfolio.creators.length,
+      activeCreators: portfolio.creators.filter(c => c.status === 'active').length,
+      totalRevenue: portfolio.creators.reduce((sum, c) => sum + (c.monthlyEarnings || 0), 0)
+    };
+    
+    res.json(utils.response.success('Studio portfolio retrieved', portfolioData));
   } catch (error) {
-    console.error('Portfolio error:', error);
-    res.status(500).json(utils.response.error('Failed to get portfolio'));
+    console.error('Get portfolio error:', error);
+    res.status(500).json(utils.response.error('Failed to retrieve portfolio'));
   }
 });
 
@@ -2271,6 +2304,101 @@ app.get('/api/studio/:studioId/analytics', async (req, res) => {
   } catch (error) {
     console.error('Analytics error:', error);
     res.status(500).json(utils.response.error('Failed to get analytics'));
+  }
+});
+
+// === CREATOR STUDIO ENDPOINTS ===
+
+// Get Studio Connection Requests for Creator
+app.get('/api/creator/:creatorId/studio-requests', async (req, res) => {
+  try {
+    const { creatorId } = req.params;
+    
+    // Find pending studio connections for this creator
+    const pendingConnections = [];
+    
+    // Search through all studio portfolios for pending creator requests
+    for (const [studioId, portfolio] of studioPortfolios.entries()) {
+      if (portfolio.creators) {
+        const pendingCreators = portfolio.creators.filter(c => c.status === 'pending');
+        
+        for (const creator of pendingCreators) {
+          // For demo purposes, show all pending requests to any creator
+          // In production, this would match by creator email/ID
+          const studioRequest = {
+            id: `request_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            studioId: studioId,
+            studioName: `Studio ${studioId}`,
+            studioKey: creator.studioKey,
+            requestedAt: creator.joinDate,
+            status: creator.status,
+            permissions: creator.permission || 'Full Access',
+            creatorData: creator
+          };
+          pendingConnections.push(studioRequest);
+        }
+      }
+    }
+    
+    res.json(utils.response.success('Studio requests retrieved', pendingConnections));
+  } catch (error) {
+    console.error('Get studio requests error:', error);
+    res.status(500).json(utils.response.error('Failed to get studio requests'));
+  }
+});
+
+// Confirm Studio Connection
+app.post('/api/creator/confirm-studio', async (req, res) => {
+  try {
+    const { studioKey, action } = req.body; // action: 'accept' or 'reject'
+    
+    if (!studioKey || !action) {
+      return res.status(400).json(utils.response.error('Studio key and action required'));
+    }
+    
+    const connection = studioKeys.get(studioKey);
+    if (!connection) {
+      return res.status(404).json(utils.response.error('Studio connection not found'));
+    }
+    
+    if (action === 'accept') {
+      // Update connection status
+      connection.status = 'active';
+      studioKeys.set(studioKey, connection);
+      
+      // Update creator status in studio portfolio
+      const portfolio = studioPortfolios.get(connection.studioId);
+      if (portfolio) {
+        const creator = portfolio.creators.find(c => c.id === connection.creatorId);
+        if (creator) {
+          creator.status = 'active';
+          creator.lastActive = new Date().toISOString();
+          studioPortfolios.set(connection.studioId, portfolio);
+        }
+      }
+      
+      res.json(utils.response.success('Studio connection accepted', {
+        studioId: connection.studioId,
+        status: 'active'
+      }));
+    } else if (action === 'reject') {
+      // Remove from studio portfolio
+      const portfolio = studioPortfolios.get(connection.studioId);
+      if (portfolio) {
+        portfolio.creators = portfolio.creators.filter(c => c.id !== connection.creatorId);
+        studioPortfolios.set(connection.studioId, portfolio);
+      }
+      
+      // Remove studio key connection
+      studioKeys.delete(studioKey);
+      
+      res.json(utils.response.success('Studio connection rejected'));
+    } else {
+      res.status(400).json(utils.response.error('Invalid action. Use "accept" or "reject"'));
+    }
+  } catch (error) {
+    console.error('Confirm studio error:', error);
+    res.status(500).json(utils.response.error('Failed to confirm studio connection'));
   }
 });
 
